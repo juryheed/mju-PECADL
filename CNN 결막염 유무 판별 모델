@@ -1,0 +1,109 @@
+import os
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import Model
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import matplotlib.pyplot as plt
+import time
+
+# 데이터셋 로드 및 전처리
+def load_and_preprocess_data(train_dir, val_dir, test_dir):
+    train_datagen = ImageDataGenerator(
+        rescale=1./255,
+        rotation_range=20,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
+
+    val_datagen = ImageDataGenerator(rescale=1./255)
+    test_datagen = ImageDataGenerator(rescale=1./255)
+
+    train_generator = train_datagen.flow_from_directory(
+        train_dir,
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary'
+    )
+
+    val_generator = val_datagen.flow_from_directory(
+        val_dir,
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary'
+    )
+
+    test_generator = test_datagen.flow_from_directory(
+        test_dir,
+        target_size=(150, 150),
+        batch_size=32,
+        class_mode='binary'
+    )
+
+    return train_generator, val_generator, test_generator
+
+# CNN 모델 구축하기
+def build_model():
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(150, 150, 3)))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dense(1, activation='sigmoid'))
+
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+# 학습 과정 시각화
+def plot_history(history):
+    plt.figure(figsize=(16, 10))
+    plt.plot(history.history['accuracy'], label='Train Accuracy')
+    plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.show()
+
+# 메인 함수
+def main():
+    train_dir = '/content/drive/MyDrive/eye_disease/train'
+    val_dir = '/content/drive/MyDrive/eye_disease/valid'
+    test_dir = '/content/drive/MyDrive/eye_disease/test'
+
+    train_generator, val_generator, test_generator = load_and_preprocess_data(train_dir, val_dir, test_dir)
+
+    model = build_model()
+
+    # 모델 학습
+    history = model.fit(
+        train_generator,
+        steps_per_epoch=train_generator.samples // train_generator.batch_size,
+        validation_data=val_generator,
+        validation_steps=val_generator.samples // val_generator.batch_size,
+        epochs=20
+    )
+
+    # 모델 평가
+    test_loss, test_acc = model.evaluate(test_generator, steps=test_generator.samples // test_generator.batch_size)
+    print('Test accuracy:', test_acc)
+
+    # 학습 과정 시각화
+    plot_history(history)
+
+    # 모델 저장
+    model.save('dog_eye_disease_model.h5')
+
+
+if __name__ == "__main__":
+    main()
