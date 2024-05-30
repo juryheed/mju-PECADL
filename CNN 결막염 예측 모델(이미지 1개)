@@ -1,0 +1,43 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+import matplotlib.pyplot as plt
+
+# 모델 로드
+model = tf.keras.models.load_model('dog_eye_disease_model.h5')
+
+# 이미지 전처리 함수
+def preprocess_image(img_path, target_size=(150, 150)):
+    img = image.load_img(img_path, target_size=target_size)
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.0
+    return img_array
+
+# 예측 수행 함수
+def predict_image(model, img_path):
+    img_array = preprocess_image(img_path)
+    prediction = model.predict(img_array)
+    return prediction
+
+# 예측 결과 시각화 함수
+def display_prediction(img_path, prediction):
+    img = image.load_img(img_path)
+    plt.imshow(img)
+    plt.axis('off')
+
+    if prediction < 0.5:
+        plt.title("Prediction: No Disease (Confidence: {:.2f}%)".format((1 - prediction[0][0]) * 100))
+    else:
+        plt.title("Prediction: Disease (Confidence: {:.2f}%)".format(prediction[0][0] * 100))
+
+    plt.show()
+
+# 예측할 이미지 경로 설정
+new_image_path = '/content/drive/MyDrive/eye_disease/predict/crop_D0_0a0d137d-60a5-11ec-8402-0a7404972c70.png'
+
+# 예측 수행
+prediction = predict_image(model, new_image_path)
+
+# 예측 결과 시각화
+display_prediction(new_image_path, prediction)
