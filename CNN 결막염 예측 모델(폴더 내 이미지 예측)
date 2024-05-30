@@ -1,0 +1,50 @@
+import os
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.preprocessing import image
+import matplotlib.pyplot as plt
+
+# 모델 로드
+model = tf.keras.models.load_model('dog_eye_disease_model.h5')
+
+# 이미지 전처리 함수
+def preprocess_image(img_path, target_size=(150, 150)):
+    img = image.load_img(img_path, target_size=target_size)
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array /= 255.0
+    return img_array
+
+# 폴더 내 모든 이미지 전처리 함수
+def preprocess_images_from_folder(folder_path, target_size=(150, 150)):
+    img_paths = [os.path.join(folder_path, fname) for fname in os.listdir(folder_path) if fname.endswith(('.jpg', '.png', '.jpeg'))]
+    images = [preprocess_image(img_path, target_size) for img_path in img_paths]
+    return np.vstack(images), img_paths
+
+# 예측 결과 시각화 함수
+def display_predictions(img_paths, predictions):
+    plt.figure(figsize=(8, 8))
+    for i, (img_path, prediction) in enumerate(zip(img_paths, predictions)):
+        plt.subplot(4, 4, i + 1)
+        img = image.load_img(img_path)
+        plt.imshow(img)
+        plt.axis('off')
+
+        if prediction < 0.5:
+            plt.title(f"No Disease\nConfidence: {1 - prediction[0]:.2f}")
+        else:
+            plt.title(f"Disease\nConfidence: {prediction[0]:.2f}")
+    plt.tight_layout()
+    plt.show()
+
+# 예측할 이미지가 있는 폴더 경로 설정
+folder_path = '/content/drive/MyDrive/eye_disease/predict/'
+
+# 폴더 내 모든 이미지 전처리
+images, img_paths = preprocess_images_from_folder(folder_path)
+
+# 예측 수행
+predictions = model.predict(images)
+
+# 예측 결과 시각화
+display_predictions(img_paths, predictions)
